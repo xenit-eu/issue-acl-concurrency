@@ -1,0 +1,32 @@
+version: '3.4'
+services:
+  issue-acl-concurrency-acs:
+    image: alfresco-content-services-issue-acl-concurrency:development
+    build:
+      dockerfile: ./Dockerfile
+      context: ../../../target
+    environment:
+      CATALINA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:8888"
+    ports:
+      - "${acs.port}:8080"
+      - "${acs.debug.port}:8888"
+    volumes:
+      - issue-acl-concurrency-acs-volume:/usr/local/tomcat/alf_data
+    depends_on:
+      - issue-acl-concurrency-postgres
+  issue-acl-concurrency-postgres:
+    image: postgres:9.6
+    environment:
+      POSTGRES_DB: alfresco
+      POSTGRES_USER: alfresco
+      POSTGRES_PASSWORD: alfresco
+    command: postgres -c max_connections=300 -c log_min_messages=LOG
+    ports:
+      - "${postgres.port}:5432"
+    volumes:
+      - issue-acl-concurrency-db-volume:/var/lib/postgresql/data
+volumes:
+  issue-acl-concurrency-acs-volume:
+    external: true
+  issue-acl-concurrency-db-volume:
+    external: true
