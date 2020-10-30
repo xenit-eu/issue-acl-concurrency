@@ -7,7 +7,6 @@ import org.alfresco.rad.test.AlfrescoTestRunner;
 import org.alfresco.repo.nodelocator.CompanyHomeNodeLocator;
 import org.alfresco.repo.security.authentication.AuthenticationUtil;
 import org.alfresco.service.cmr.repository.NodeRef;
-import org.alfresco.service.cmr.security.AuthorityType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,14 +14,12 @@ import org.junit.runner.RunWith;
 @RunWith(value = AlfrescoTestRunner.class)
 public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
 
-    private String group;
     private NodeRef rootFolder;
 
     @Before
     public void setup() {
         rootFolder = getServiceRegistry().getRetryingTransactionHelper()
                 .doInTransaction(this::createOrResetTestFolder, false, true);
-        group = getOrCreateTestGroup();
     }
 
     /**
@@ -94,14 +91,6 @@ public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
         return getServiceRegistry().getFileFolderService()
                 .create(getCompanyHomeNodeRef(), name, ContentModel.TYPE_FOLDER)
                 .getNodeRef();
-    }
-
-    private String getOrCreateTestGroup() {
-        final String longName = getServiceRegistry().getAuthorityService().getName(AuthorityType.GROUP, "test-group");
-        if (getServiceRegistry().getAuthorityService().authorityExists(longName)) {
-            return longName;
-        }
-        return getServiceRegistry().getAuthorityService().createAuthority(AuthorityType.GROUP, "test-group");
     }
 
     private NodeRef getCompanyHomeNodeRef() {
