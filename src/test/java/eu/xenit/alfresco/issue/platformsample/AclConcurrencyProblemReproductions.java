@@ -23,7 +23,7 @@ public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
     }
 
     /**
-     * Setup: sub-folder -> sub-sub-folder -> nodes
+     * Setup: root-folder -> sub-folder -> nodes. The two threads simulate e.g. http threads
      */
     @Test
     public void exception_setFixedAcls_unexpectedSharedAcl() throws InterruptedException {
@@ -31,17 +31,14 @@ public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
         NodeRef subFolder = getServiceRegistry().getRetryingTransactionHelper().doInTransaction(() ->
                 getServiceRegistry().getFileFolderService()
                         .create(rootFolder, "sub-folder", ContentModel.TYPE_FOLDER).getNodeRef(), false, true);
-        NodeRef subSubFolder = getServiceRegistry().getRetryingTransactionHelper().doInTransaction(() ->
-                getServiceRegistry().getFileFolderService()
-                        .create(subFolder, "sub-sub-folder", ContentModel.TYPE_FOLDER).getNodeRef(), false, true);
 
-        // 2. Modify permissions the "sub-folder" - and create new nodes in the "sub-sub-folder" using different threads
+        // 2. Modify permissions the root test folder - and create new nodes in the "sub-folder" using different threads
 
-        // 2.1 Create thread in which we will update the permissions of the sub folder
+        // 2.1 Create thread in which we will update the permissions of the root folder
         Runnable setPermissionAction = () -> {
             AuthenticationUtil.setAdminUserAsFullyAuthenticatedUser();
             getServiceRegistry().getRetryingTransactionHelper().doInTransaction(() -> {
-                getServiceRegistry().getPermissionService().setInheritParentPermissions(subFolder, false);
+                getServiceRegistry().getPermissionService().setInheritParentPermissions(rootFolder, false);
                 return null;
             }, false, true);
         };
@@ -54,7 +51,7 @@ public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
             getServiceRegistry().getRetryingTransactionHelper().doInTransaction(() -> {
                 for (int i = 1; i <= numberOfNodesToCreate; i++) {
                     final String name = "-" + i + "-thread-" + Thread.currentThread().getName();
-                    getServiceRegistry().getFileFolderService().create(subSubFolder, name, ContentModel.PROP_CONTENT);
+                    getServiceRegistry().getFileFolderService().create(subFolder, name, ContentModel.PROP_CONTENT);
                 }
                 return null;
             }, false, true);
@@ -70,11 +67,11 @@ public class AclConcurrencyProblemReproductions extends AbstractAlfrescoIT {
         /*
         At this point the harm has already been done - the created child nodes can have a shared ACL that differs from
         the ACL of the sub folder.
-        To illustrate this incorrect state, we now try to set the permissions of the sub-sub-folder. This wil result in
+        To illustrate this incorrect state, we now try to set the permissions of the sub-folder. This wil result in
         the "setFixedAcls: unexpected shared ACL" exception
          */
 
-        getServiceRegistry().getPermissionService().setInheritParentPermissions(subSubFolder, false);
+        getServiceRegistry().getPermissionService().setInheritParentPermissions(subFolder, false);
     }
 
     private NodeRef createOrResetTestFolder() {
